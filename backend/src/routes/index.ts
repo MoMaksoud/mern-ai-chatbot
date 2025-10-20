@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { userInfo } from "os";
 import userRoutes from "./user-routes.js";
 
 const appRouter = Router();
