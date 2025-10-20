@@ -1,7 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import Users from "../models/Users.js"
 import { hash, compare } from "bcrypt";
-
+import { createToken } from "../utils/token-manager.js";
+import { COOKIE_NAME } from "../utils/constants.js";
 
 export const getAllUsers = async(
      req: Request,
@@ -35,6 +36,29 @@ export const userSignup = async(
     const hashedPassword = await hash(password, 10)
        const users = new Users({ name, email, password: hashedPassword });
        await users.save();
+
+    //create token and store cookie
+    res.clearCookie(COOKIE_NAME,{
+        httpOnly: true,
+        domain: "localhost",
+        signed: true,
+        path: "/",
+    });
+
+    const token = createToken(users._id.toString(),users.email, "7d");
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 7);
+
+    res.cookie(COOKIE_NAME, token, {
+        path: "/",
+        domain: "localhost",
+        expires,
+        httpOnly: true,
+        signed: true,
+    });
+
+
+
        return res.status(201).json({ message: "OK", id: users._id.toString() });
 
        
@@ -60,9 +84,28 @@ export const userLogin = async(
     const isPasswordCorrect = await compare(password, user.password);
     if(!isPasswordCorrect) return res.status(403).send("Incorrect password");
 
-    return res.status(200).json({ message: "OK", id: user._id.toString() });
 
-        
+    res.clearCookie(COOKIE_NAME,{
+        httpOnly: true,
+        domain: "localhost",
+        signed: true,
+        path: "/",
+    });
+
+    const token = createToken(user._id.toString(),user.email, "7d");
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 7);
+
+    res.cookie(COOKIE_NAME, token, {
+        path: "/",
+        domain: "localhost",
+        expires,
+        httpOnly: true,
+        signed: true,
+    });
+
+    return res.status(200).json({ message: "OK", id: user._id.toString(), token });
+
    } catch (error: any){
        console.log(error);
        return res.status(200).json({ message: "ERROR", cause: error?.message ?? "Unknown error" });
